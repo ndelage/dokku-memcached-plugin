@@ -105,11 +105,8 @@ case "$1" in
 
         # figure out IP to set env var
         ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
-        #IP=$(docker inspect $ID | grep IPAddress | cut -d '"' -f 4)
-
-        dokku link:create "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
-        dokku config:set "$APP" MEMCACHE_SCHEME=""
-        echo
+        IP=$(docker inspect $ID | grep IPAddress | cut -d '"' -f 4)
+        dokku config:set "$APP" MEMCACHE_SERVERS="${IP}:11211"
         echo "-----> $APP linked to $CONTAINER_NAME container"
     fi
     ;;
