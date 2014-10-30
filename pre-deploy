@@ -4,19 +4,23 @@ set -e;
 APP="$1"
 PLUGIN_NAME="memcached"
 CONTAINER_NAME="${PLUGIN_NAME}_${APP}"
-HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME/$APP"
+HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME"
 CONTAINER_IMAGE="jlachowski/memcached"
 MEMCACHE_PORT=11211
 
-if [[ -e $HOST_DIR ]]; then
+# check for the presence of a proc file, which indicates that this
+# app depends on memcached
+if [[ -e "${HOST_DIR}/${APP}" ]]; then
   CONTAINER_ID=$(docker ps | grep "$CONTAINER_NAME" |  awk '{print $1}')
 
   if [[ -n $CONTAINER_ID ]]; then
       echo "Memcached aleady running."
   else
-      echo "Memcached, not running starting...."
-      ID=$(docker run --name $CONTAINER_NAME -d $CONTAINER_IMAGE \
-          /usr/bin/memcached -u memcache -p $MEMCACHE_PORT -m 64 -l 0.0.0.0)
+      echo -e "Memcached, not running starting...."
+      docker start -a $CONTAINER_NAME || docker run --name $CONTAINER_NAME -d $CONTAINER_IMAGE \
+                                         /usr/bin/memcached -u memcache -p $MEMCACHE_PORT -m 64 -l 0.0.0.0
+      echo  "done."
+
       dokku memcached:link $APP $APP
       sleep 1
       dokku memcached:info $APP

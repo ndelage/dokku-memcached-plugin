@@ -23,7 +23,7 @@ if [[ $1 == memcached:* ]]; then
     PLUGIN_NAME="memcached"
     PLUGIN_ALIAS="memcache"
     CONTAINER_NAME="${PLUGIN_NAME}_${APP}"
-    HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME/$APP"
+    HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME"
     CONTAINER_IMAGE="jlachowski/memcached"
     MEMCACHE_PORT=11211
 fi
@@ -52,6 +52,12 @@ case "$1" in
 
     # Link to a potential existing app
     dokku memcached:link $APP $APP
+
+    # Create a proc file to record that $APP depends on memcached
+    # The presence of this file ensure memcached is started via the pre-deploy
+    # hook
+    mkdir -p $HOST_DIR && touch ${HOST_DIR}/${APP}
+
     echo
     echo "-----> Memcached container $CONTAINER_NAME created (using $CONTAINER_IMAGE)"
     sleep 1
@@ -78,7 +84,10 @@ case "$1" in
     fi
 
     dokku link:delete "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
-    dokku config:unset "$APP" MEMCACHE_SCHEME
+
+    # Delete the service dependency file for this $APP
+    rm $DOKKU_ROOT/.$PLUGIN_NAME/$APP
+
     echo
     echo "-----> Deleted Memcached container $CONTAINER_NAME"
     ;;
